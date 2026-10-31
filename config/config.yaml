@@ -1,0 +1,80 @@
+# Defender-first defaults. Discovery mode is advanced/opt-in.
+scope_mode: authorized
+max_domains_per_run: 200
+concurrency: 20
+per_domain_timeout_s: 45
+crawl_budget_s: 60
+max_pages_per_domain: 15
+max_assets_per_page: 40
+max_response_bytes: 10000000        # 10 MB per fetch
+respect_robots: true
+user_agent: "Gandoki/1.0 (+internal-security; contact=github.com/tarbo03)"
+db_path: "gandoki.db"
+include_suspected_default: false
+
+per_host:
+  max_concurrent_per_host: 4
+  min_delay_ms_between_requests_per_host: 200
+
+discovery:
+  ct_logs:
+    enabled: false
+    keywords: ["supabase", "openai", "firebase", "vercel", "netlify"]
+  common_crawl:
+    enabled: false
+  urlscan:
+    enabled: false
+    api_key: ""
+
+validation:
+  openai:
+    enabled_live: false
+  stripe:
+    enabled_live: false
+  aws_sts:
+    enabled_live: false
+  github_whoami:
+    enabled_live: false
+  slack:
+    enabled_live: false
+    destructive: true
+
+# ---- AI pipeline ----
+ai:
+  enabled: true
+  backend: openrouter                # openrouter | ollama
+  send_raw_secrets_to_remote: false
+
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    model: "openrouter/free"
+    fallback_models: []
+    api_key_env: "OPENROUTER_API_KEY"
+    timeout_s: 30
+
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "llama3.2:3b"
+    timeout_s: 30
+
+  levels:
+    l2_context: true
+    l3_provenance: true
+    l4_ai_adjudication: true
+    l5_severity_cap: true
+
+  recall:
+    enabled: true                    # Stage 0 (B-hybrid)
+    backend: openrouter
+    max_regions_per_asset: 5
+    max_assets_per_domain_scanned_by_ai: 5
+    max_ai_calls_per_run: 500
+    min_deterministic_score: 0.4
+    max_context_chars: 2000
+
+  enrichment:
+    sourcemap_context_recovery: true
+    fleet_near_clone: true
+    triage_hint: true
+    narration: false
+    builder_hint: true

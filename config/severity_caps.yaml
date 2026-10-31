@@ -1,0 +1,42 @@
+# L5 severity cap rules. Caps only ever move impact DOWN, never up.
+# Every cap adds a non-empty cap_reason to impact.caveat.
+caps:
+  - detector: stripe_secret_key
+    when: { prefix_match: "sk_test_" }
+    cap_to: MEDIUM
+    reason: "Test-mode key — cannot charge real cards"
+
+  - detector: aws_access_key_id
+    when: { prefix_match: "ASIA" }
+    cap_to: MEDIUM
+    reason: "Temporary STS credential — expires automatically"
+
+  - detector: firebase_api_key
+    when: { adjacent_config_missing: ["projectId", "authDomain", "storageBucket"] }
+    cap_to: LOW
+    reason: "Key present without full Firebase config — limited capability"
+
+  - detector: supabase_service_role
+    when: { jwt_role_not: "service_role" }
+    cap_to: HIGH
+    reason: "JWT role claim does not match service_role"
+
+  - detector: jwt_generic
+    when: { jwt_expired: true }
+    cap_to: LOW
+    reason: "JWT is expired — but was still served client-side"
+
+  - detector: discord_webhook
+    when: { host_mismatch: true }
+    cap_to: LOW
+    reason: "Webhook URL structure matched, host inconsistent"
+
+  - detector: slack_webhook
+    when: { host_mismatch: true }
+    cap_to: LOW
+    reason: "Webhook URL structure matched, host inconsistent"
+
+  - detector: "*"
+    when: { capability_uncorroborated: true }
+    cap_to: "-1"
+    reason: "Impact claim not corroborated by captured evidence"

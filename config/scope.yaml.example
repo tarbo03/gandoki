@@ -1,0 +1,4 @@
+# Only list domains you own or have explicit written authorization to test.
+domains:
+  - myapp.example.com
+  - client-app.example.org

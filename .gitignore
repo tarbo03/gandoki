@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+venv/
+.venv/
+.env
+.env.*
+
+# Databases and test outputs
+*.db
+*.db-wal
+*.db-shm
+findings.*
+gandoki-report.*
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp

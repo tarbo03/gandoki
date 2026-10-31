@@ -1,0 +1,247 @@
+detectors:
+  # ---------------- SECRETS ----------------
+  - { id: openai_api_key, category: secret, pattern: 'sk-(?:proj-|svcacct-)?[A-Za-z0-9_\-]{20,}',
+      entropy_min: 3.5, context_positive: ['openai','api.openai.com','OPENAI_API_KEY'],
+      context_negative: ['example','sk-xxx','your-key','placeholder','redacted'],
+      impact: HIGH, capability: "OpenAI API usage billed to owner",
+      validator: openai, destructive: false }
+
+  - { id: stripe_secret_key, category: secret, pattern: 'sk_(?:live|test)_[A-Za-z0-9]{20,}',
+      entropy_min: 3.0, context_positive: ['stripe','STRIPE_SECRET'],
+      impact: CRITICAL, capability: "Full Stripe account access",
+      validator: stripe_readonly, destructive: false }
+
+  - { id: stripe_publishable_key, category: secret, pattern: 'pk_(?:live|test)_[A-Za-z0-9]{20,}',
+      known_public: true, filter_reason: "publishable key by design" }
+
+  - { id: supabase_service_role, category: secret, type: jwt,
+      pattern: 'eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+',
+      jwt_role: service_role, impact: CRITICAL,
+      capability: "Bypasses RLS — full DB read/write" }
+
+  - { id: supabase_anon_jwt, category: secret, type: jwt,
+      pattern: 'eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+',
+      jwt_role: anon, known_public: true, filter_reason: "anon key by design" }
+
+  - { id: aws_access_key_id, category: secret, pattern: '(?:AKIA|ASIA)[0-9A-Z]{16}',
+      impact: HIGH, capability: "AWS access (subject to IAM)",
+      validator: aws_sts }
+
+  - { id: github_pat, category: secret,
+      pattern: 'ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}',
+      impact: HIGH, capability: "GitHub API access",
+      validator: github_whoami }
+
+  - { id: slack_webhook, category: secret,
+      pattern: 'https://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+',
+      impact: MEDIUM, capability: "Post messages to workspace",
+      validator: slack, destructive: true }
+
+  - { id: anthropic_api_key, category: secret, pattern: 'sk-ant-[A-Za-z0-9_\-]{32,}',
+      entropy_min: 3.5, impact: HIGH, capability: "Anthropic API usage" }
+
+  - { id: gemini_api_key, category: secret, pattern: 'AIza[0-9A-Za-z_\-]{35}',
+      impact: HIGH, capability: "Google API access" }
+
+  - { id: huggingface_token, category: secret, pattern: 'hf_[A-Za-z0-9]{34}',
+      impact: MEDIUM, capability: "HuggingFace API access" }
+
+  - { id: replicate_token, category: secret, pattern: 'r8_[A-Za-z0-9]{36}',
+      impact: MEDIUM, capability: "Replicate API usage" }
+
+  - { id: pinecone_key, category: secret, pattern: 'pcsk_[A-Za-z0-9_\-]{32,}',
+      impact: MEDIUM }
+
+  - { id: firebase_api_key, category: secret,
+      pattern: 'AAAA[A-Za-z0-9_\-]{7}:[A-Za-z0-9_\-]{140}', impact: MEDIUM }
+
+  - { id: twilio_sid, category: secret, pattern: 'AC[0-9a-fA-F]{32}', impact: HIGH }
+
+  - { id: sendgrid_key, category: secret,
+      pattern: 'SG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}', impact: HIGH }
+
+  - { id: mailgun_key, category: secret, pattern: 'key-[0-9a-zA-Z]{32}', impact: HIGH }
+
+
+
+
+  - { id: mongodb_atlas_uri, category: secret,
+      pattern: 'mongodb\+srv://[^"\s]+:[^"\s]+@[^"\s]+', impact: CRITICAL }
+
+  - { id: airtable_pat, category: secret,
+      pattern: 'pat[A-Za-z0-9]{14}\.[A-Za-z0-9]{64}', impact: HIGH }
+
+  - { id: discord_webhook, category: secret,
+      pattern: 'https://discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_\-]+',
+      impact: MEDIUM, destructive: true }
+
+  - { id: telegram_bot_token, category: secret, pattern: '\d{8,10}:[A-Za-z0-9_\-]{35}',
+      impact: MEDIUM }
+
+  - { id: jwt_generic, category: secret, type: jwt,
+      pattern: 'eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+',
+      filter_if_role_in: [anon, publishable], impact: MEDIUM }
+
+  - { id: db_connection_string, category: secret,
+      pattern: '(?:postgres|mysql|redis|mongodb)(?:ql)?(?:\+srv)?://[^"\s]+:[^"\s]+@[^"\s]+',
+      impact: CRITICAL }
+
+  - { id: private_key_block, category: secret,
+      pattern: '-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----',
+      impact: CRITICAL, capability: "Private key material — impersonation possible" }
+
+  - { id: google_oauth_client_secret, category: secret,
+      pattern: 'GOCSPX-[A-Za-z0-9_\-]{28,}', impact: HIGH }
+
+  # ---------------- DEBUG EXPOSURES ----------------
+  # ---- framework error pages (status-checked; docs <pre> auto-downgraded) ----
+  - { id: django_debug_page, category: debug_exposure, type: signature,
+      pattern: 'You.re seeing this error because you have <code>DEBUG\s*=\s*True',
+      require_error_status: true, impact: HIGH,
+      capability: "Exposes stack traces, settings, env vars, SQL queries" }
+
+  - { id: django_debug_toolbar, category: debug_exposure, type: signature,
+      pattern: 'djDebug|djdt-|django-debug-toolbar', impact: HIGH,
+      capability: "Django Debug Toolbar exposed in prod — includes SQL, settings, headers" }
+
+  - { id: flask_debugger, category: debug_exposure, type: signature,
+      pattern: 'Werkzeug Debugger|Interactive Console|__debugger__',
+      require_error_status: true, impact: HIGH,
+      capability: "Werkzeug interactive debugger — remote code execution possible" }
+
+  - { id: laravel_ignition, category: debug_exposure, type: signature,
+      pattern: 'Ignition|Whoops\\!|laravel.*exception',
+      require_error_status: true, impact: HIGH,
+      capability: "Laravel Ignition / Whoops — full stack + env leak" }
+
+  - { id: rails_development_error, category: debug_exposure, type: signature,
+      pattern: 'Rails\.root|__better_errors|web-console',
+      require_error_status: true, impact: HIGH,
+      capability: "Rails dev error page — source + env leak" }
+
+  - { id: aspnet_detailed_error, category: debug_exposure, type: signature,
+      pattern: "Server Error in '/' Application|ASP\\.NET is configured to show",
+      require_error_status: true, impact: HIGH,
+      capability: "ASP.NET detailed error — full stack trace" }
+
+  - { id: symfony_debug_toolbar, category: debug_exposure, type: signature,
+      pattern: 'sf-toolbar|symfony-profiler|_profiler',
+      impact: MEDIUM, capability: "Symfony debug toolbar exposed" }
+
+  # ---- tracebacks (structure-verified) ----
+  - { id: verbose_python_trace, category: debug_exposure,
+      pattern: 'Traceback \(most recent call last\)',
+      impact: MEDIUM, capability: "Python traceback — application internals" }
+
+  - { id: verbose_js_trace, category: debug_exposure,
+      pattern: 'at \w+\s*\(.+:\d+:\d+\)',
+      impact: LOW, capability: "JS stack trace — source paths" }
+
+  - { id: verbose_java_trace, category: debug_exposure,
+      pattern: '^\s+at [\w.$]+\([\w.$]+\.java:\d+\)',
+      impact: MEDIUM, capability: "Java stack trace — class paths" }
+
+  # ---- console / env leaks (guard + comment checked) ----
+  - { id: console_log_sensitive, category: debug_exposure,
+      pattern: 'console\.(?:log|debug|info|warn|error)\s*\(\s*[^)]*(?:token|password|secret|api[_-]?key|auth)',
+      impact: LOW, capability: "Sensitive data logged to browser console" }
+
+  - { id: process_env_ref, category: debug_exposure,
+      pattern: 'process\.env\.[A-Z_]{3,}',
+      impact: LOW, capability: "process.env referenced in client bundle" }
+
+  - { id: next_public_env_leak, category: debug_exposure,
+      pattern: 'NEXT_PUBLIC_[A-Z_]+\s*[:=]\s*["''][^"'']{8,}["'']',
+      impact: MEDIUM, capability: "NEXT_PUBLIC env variable compiled into client JS" }
+
+  - { id: firebase_config_full, category: debug_exposure,
+      pattern: 'apiKey\s*:\s*["'']AIza[^"'']+["''].*?projectId\s*:\s*["''][^"'']+["'']',
+      impact: LOW, capability: "Full Firebase config exposed in client JS" }
+
+  # ---- probe rules (content-type + body-shape verified) ----
+  - { id: env_file_exposed, category: debug_exposure, type: probe,
+      probe_urls: ['/.env', '/.env.local', '/.env.production', '/.env.dev',
+                   '/.env.backup', '/.env.save', '/.env.old'],
+      validate: env_var_lines, expected_content_type: text_or_octet,
+      impact: CRITICAL, capability: "Environment file served publicly" }
+
+  - { id: git_dir_exposed, category: debug_exposure, type: probe,
+      probe_urls: ['/.git/HEAD'],
+      validate: git_head, expected_content_type: text_or_octet,
+      impact: CRITICAL, capability: "Git HEAD served — full source history retrievable" }
+
+  - { id: git_config_exposed, category: debug_exposure, type: probe,
+      probe_urls: ['/.git/config'],
+      validate: git_config, expected_content_type: text_or_octet,
+      impact: HIGH, capability: "Git config — remote URLs and credentials possible" }
+
+  - { id: dot_ds_store, category: debug_exposure, type: probe,
+      probe_urls: ['/.DS_Store'],
+      validate: bud1_magic, expected_content_type: octet,
+      impact: LOW, capability: "Mac .DS_Store — directory listing leak" }
+
+  - { id: spring_actuator_env, category: debug_exposure, type: probe,
+      probe_urls: ['/actuator/env'],
+      validate: 'actuator_json=propertySources,activeProfiles',
+      expected_content_type: json,
+      impact: HIGH, capability: "Spring actuator — env vars leaked" }
+
+  - { id: spring_actuator_health, category: debug_exposure, type: probe,
+      probe_urls: ['/actuator/health'],
+      validate: 'actuator_json=status',
+      expected_content_type: json,
+      impact: LOW, capability: "Spring actuator — health info exposed" }
+
+  - { id: spring_actuator_threaddump, category: debug_exposure, type: probe,
+      probe_urls: ['/actuator/threaddump'],
+      validate: 'actuator_json=threads',
+      expected_content_type: json,
+      impact: HIGH, capability: "Spring actuator — full thread dump (class names, paths)" }
+
+  - { id: spring_actuator_httptrace, category: debug_exposure, type: probe,
+      probe_urls: ['/actuator/httptrace', '/actuator/httpexchanges'],
+      validate: 'actuator_json=traces,exchanges',
+      expected_content_type: json,
+      impact: MEDIUM, capability: "Spring actuator — recent HTTP requests" }
+
+  - { id: laravel_log_exposed, category: debug_exposure, type: probe,
+      probe_urls: ['/storage/logs/laravel.log', '/logs/laravel.log'],
+      validate: laravel_log, expected_content_type: text_or_octet,
+      impact: HIGH, capability: "Laravel application log exposed" }
+
+  - { id: wp_config_backup, category: debug_exposure, type: probe,
+      probe_urls: ['/wp-config.php.bak', '/wp-config.php.old',
+                   '/wp-config.php.swp', '/wp-config.txt'],
+      validate: wp_config, expected_content_type: text_or_octet,
+      impact: CRITICAL, capability: "WordPress config backup — DB credentials leaked" }
+
+  - { id: phpinfo_exposed, category: debug_exposure, type: probe,
+      probe_urls: ['/phpinfo.php', '/info.php'],
+      validate: phpinfo, expected_content_type: html,
+      impact: HIGH, capability: "phpinfo() exposed — server paths, env, extensions" }
+
+  - { id: django_debug_history, category: debug_exposure, type: probe,
+      probe_urls: ['/__debug__/history_sidebar/', '/__debug__/render_panel/'],
+      validate: 'content_contains=__debug__',
+      expected_content_type: html, impact: MEDIUM,
+      capability: "Django Debug Toolbar history endpoint exposed" }
+
+  # ---- sourcemap (verified as real sourcemap JSON) ----
+  - { id: source_map_exposed, category: debug_exposure, type: sourcemap,
+      impact: MEDIUM, capability: "Original source retrievable via .map" }
+
+  # ---- header rules ----
+  - { id: server_header_dev, category: debug_exposure, type: header,
+      header_name: Server,
+      header_value_pattern: 'Werkzeug|Flask/',
+      impact: MEDIUM, capability: "Dev server (Werkzeug/Flask) serving production traffic" }
+
+  - { id: x_debug_token_header, category: debug_exposure, type: header,
+      header_name: X-Debug-Token,
+      header_value_pattern: '.+',
+      impact: HIGH, capability: "Symfony/Silex debug mode enabled — profiler exposed" }
+
+  - { id: x_powered_by_express, category: debug_exposure, type: header,
+      header_name: X-Powered-By,
+      header_value_pattern: 'Express',
+      impact: LOW, capability: "Express version leak in X-Powered-By header" }
