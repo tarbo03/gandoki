@@ -65,12 +65,26 @@ def _tier_badge(tier_str: str) -> str:
 
 
 def _open_browser(path: str) -> None:
-    """Best-effort open of a file in the system default browser."""
+    """Best-effort open of a file in the system default application."""
+    import subprocess
+    import sys
+    full_path = os.path.abspath(path)
     try:
-        import webbrowser
-        webbrowser.open(f"file://{os.path.abspath(path)}")
+        if sys.platform == "darwin":      # macOS
+            subprocess.Popen(["open", full_path])
+        elif sys.platform == "win32":     # Windows
+            os.startfile(full_path)
+        else:                             # Linux (xdg-open)
+            subprocess.Popen(["xdg-open", full_path], 
+                             stdout=subprocess.DEVNULL, 
+                             stderr=subprocess.DEVNULL)
     except Exception:
-        pass
+        # Fallback to webbrowser if xdg-open is missing
+        try:
+            import webbrowser
+            webbrowser.open(f"file://{full_path}")
+        except Exception:
+            pass
 
 
 def _handle_report_open(*, md_path, html_path, open_flag, quiet):
