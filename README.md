@@ -61,6 +61,44 @@ visible `retracted[]` array with reason, model ID, timestamp, and input hash.
 - **MCP server** — 7 tools for Claude Desktop, Cursor, or any MCP client
 - **Scan history** — SQLite with prefix-based diff
 
+
+## 🔌 MCP Server (Remote & Local)
+
+Gandoki is a fully functional **Model Context Protocol (MCP)** server. You can use it locally via `stdio`, or connect to the hosted Azure instance.
+
+### Connect to the Hosted Server (Azure)
+You can add Gandoki directly to Claude Desktop, Cursor, or any MCP client using the remote endpoint:
+**Endpoint:** `https://gandoki.bravedesert-4a5614c1.westus2.azurecontainerapps.io/mcp`
+
+Add this to your MCP client config:
+```json
+{
+  "mcpServers": {
+    "gandoki": {
+      "url": "https://gandoki.bravedesert-4a5614c1.westus2.azurecontainerapps.io/mcp",
+      "headers": {
+        "X-OpenRouter-Key": "sk-or-v1-YOUR_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+### Bring Your Own Key (BYOK) Architecture
+To protect your API quotas and ensure maximum privacy, the hosted server operates on a **BYOK** model. You simply pass your OpenRouter API key in the `X-OpenRouter-Key` HTTP header when connecting.
+* The key is extracted via FastMCP v3's `get_http_headers()`.
+* It is used **only** for your specific scan request.
+* It is **never** logged, stored, or shared.
+
+### Run the Docker Container Locally
+If you prefer to host it yourself, Gandoki includes a production-ready `Dockerfile` configured for Azure Container Apps (or AWS ECS).
+
+```bash
+docker build -t gandoki-mcp .
+docker run -p 8080:8080 gandoki-mcp
+```
+The server will start on `http://localhost:8080/mcp`.
+
 ## What it doesn't do
 
 - No subdomain enumeration, port scanning, or network probing
