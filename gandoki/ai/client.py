@@ -136,7 +136,8 @@ def build_client(cfg: dict) -> Optional[LLMClient]:
     if backend == "openrouter":
         orc = ai.get("openrouter", {})
         env_var = orc.get("api_key_env", "OPENROUTER_API_KEY")
-        api_key = os.environ.get(env_var, "")
+        # BYOK: Check config first (injected from headers), then fallback to env
+        api_key = orc.get("api_key") or os.environ.get(env_var, "")
         if not api_key:
             raise LLMError(
                 f"OpenRouter API key not found in env var '{env_var}'. "

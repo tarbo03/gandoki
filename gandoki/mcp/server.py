@@ -1,23 +1,16 @@
-"""MCP server exposing Gandoki as tools.
-
-Guardrails (see docs/MCP_SERVER.md):
-  1. Raw secrets are NEVER returned. Findings come back redacted via the
-     same Finding.to_public_dict() the JSON report uses.
-  2. Every finding carries confidence tier + validation.status + impact.caveat
-     so the model summarizing it cannot overclaim.
-  3. SUSPECTED findings are suppressed by default (same policy as CLI).
-  4. Destructive validators never fire.
-  5. Retracted findings are visible in the `retracted` array — never hidden.
-
-TRUST BOUNDARY: this is a local-trust tool. Do not expose this server to a
-network. scan_file reads any filesystem path the server user can read.
-"""
+"""MCP server exposing Gandoki as tools."""
 from __future__ import annotations
 import asyncio
+import json
 import uuid
 from pathlib import Path
+from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP, Context
+try:
+    from fastmcp.server.dependencies import get_http_headers
+except ImportError:
+    get_http_headers = None
 
 from ..config import load_config
 from ..discovery.file_input import load_domains_file
@@ -42,8 +35,20 @@ async def _execute_scan(
     cfg: dict,
     include_suspected: bool,
     job_id: str,
+    ai_key: str | None = None,
+    ai_model: str | None = None,
 ) -> dict:
     db.update_job_status(cfg["db_path"], job_id, "running")
+    
+    # Inject user-provided API key if present (BYOK)
+    if ai_key:
+        cfg.setdefault("ai", {})
+        cfg["ai"]["enabled"] = True
+        cfg["ai"].setdefault("openrouter", {})
+        cfg["ai"]["openrouter"]["api_key"] = ai_key
+        if ai_model:
+            cfg["ai"]["openrouter"]["model"] = ai_model
+
     try:
         result = await run_scan(
             cfg=cfg,
@@ -97,23 +102,33 @@ async def scan_domains(
     wait: bool = True,
     timeout_s: int = 300,
     include_suspected: bool = False,
+    ctx: Context = None,
 ) -> dict:
-    """Scan a list of domains for exposed secrets and debug exposures.
-
-    Args:
-        domains: Hostnames (e.g. ["app.example.com"]).
-        wait: If True, block up to timeout_s. If False, return immediately
-              with a job_id to poll via get_job.
-        timeout_s: Max seconds to wait when wait=True.
-        include_suspected: Include low-confidence SUSPECTED findings.
-
-    Returns:
-        {status, job_id?, accepted?, retracted?, coverage?}
-        Findings are redacted. Every finding carries tier + validation.status
-        + impact.caveat. Retracted findings are visible, not hidden.
-    """
+    """Scan a list of domains for exposed secrets and debug exposures."""
     if not domains:
         return {"status": "error", "error": "domains list is empty"}
+
+    ai_key = None
+    ai_model = None
+    
+    # Extract headers using FastMCP v3 official method
+    if get_http_headers:
+        try:
+            headers = get_http_headers()
+            if headers:
+                ai_key = headers.get("x-openrouter-key")
+                ai_model = headers.get("x-openrouter-model")
+        except Exception:
+            pass
+    
+    # Fallback for older MCP versions
+    if not ai_key and ctx and hasattr(ctx, 'request_context') and ctx.request_context:
+        try:
+            headers = ctx.request_context.request.headers
+            ai_key = headers.get("x-openrouter-key")
+            ai_model = headers.get("x-openrouter-model")
+        except Exception:
+            pass
 
     cfg = _load_cfg()
     job_id = uuid.uuid4().hex
@@ -122,7 +137,9 @@ async def scan_domains(
     coro = _execute_scan(
         domains=domains, cfg=cfg,
         include_suspected=include_suspected, job_id=job_id,
+        ai_key=ai_key, ai_model=ai_model
     )
+    
     if wait:
         try:
             return await asyncio.wait_for(coro, timeout=timeout_s)
@@ -130,10 +147,7 @@ async def scan_domains(
             return {
                 "status": "timeout",
                 "job_id": job_id,
-                "note": (
-                    f"Scan exceeded {timeout_s}s. Job continues in background; "
-                    f"poll get_job('{job_id}') for results."
-                ),
+                "note": f"Scan exceeded {timeout_s}s. Job continues in background; poll get_job('{job_id}') for results.",
             }
     asyncio.create_task(coro)
     return {
@@ -149,17 +163,9 @@ async def scan_file(
     wait: bool = True,
     timeout_s: int = 300,
     include_suspected: bool = False,
+    ctx: Context = None,
 ) -> dict:
-    """Scan a CSV or TXT domain list.
-
-    Args:
-        path: Filesystem path to a .txt or .csv file (relative to server CWD
-              or absolute). .csv auto-detects a domain/url/host column.
-        wait, timeout_s, include_suspected: same as scan_domains.
-
-    Returns:
-        Same shape as scan_domains, plus a `file_input` block.
-    """
+    """Scan a CSV or TXT domain list."""
     try:
         loaded = load_domains_file(path)
     except FileNotFoundError as e:
@@ -178,6 +184,7 @@ async def scan_file(
     result = await scan_domains(
         domains=loaded.domains, wait=wait,
         timeout_s=timeout_s, include_suspected=include_suspected,
+        ctx=ctx,
     )
     result["file_input"] = {
         "source_file": loaded.source_file,
@@ -222,11 +229,7 @@ def get_finding(job_id: str, finding_id: str) -> dict:
 
 @mcp.tool()
 def explain_finding(job_id: str, finding_id: str) -> dict:
-    """Explain a finding in plain language, keeping the honesty contract.
-
-    `caution` is ALWAYS populated and states exactly what was and was not
-    verified.
-    """
+    """Explain a finding in plain language, keeping the honesty contract."""
     cfg = _load_cfg()
     for f in db.get_findings(cfg["db_path"], job_id):
         if f["finding_id"] == finding_id:
