@@ -28,6 +28,8 @@ dependencies = [
     "tenacity>=8.2",
     "fastmcp>=2.0",
     "mcp-marketplace-license",
+    "fastmcp>=2.0",
+    "mcp-marketplace-license",
 ]
 
 [project.optional-dependencies]
