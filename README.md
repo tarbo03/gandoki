@@ -66,23 +66,17 @@ visible `retracted[]` array with reason, model ID, timestamp, and input hash.
 
 Gandoki is a fully functional **Model Context Protocol (MCP)** server. You can use it locally via `stdio`, or connect to the hosted Azure instance.
 
-### Connect to the Hosted Server (Azure)
-You can add Gandoki directly to Claude Desktop, Cursor, or any MCP client using the remote endpoint:
-**Endpoint:** `https://gandoki.bravedesert-4a5614c1.westus2.azurecontainerapps.io/mcp`
 
-Add this to your MCP client config:
-```json
-{
-  "mcpServers": {
-    "gandoki": {
-      "url": "https://gandoki.bravedesert-4a5614c1.westus2.azurecontainerapps.io/mcp",
-      "headers": {
-        "X-OpenRouter-Key": "sk-or-v1-YOUR_KEY_HERE"
-      }
-    }
-  }
-}
-```
+### Connect via MCP Marketplace
+Gandoki is available as a fully managed, hosted server on leading MCP marketplaces. We are continuously adding new platforms to give you the best experience.
+
+*   **Glama.ai:** Find **Gandoki** in the [Glama MCP Registry](https://glama.ai).
+*   **MCP Marketplace:** Find **Gandoki** in the [MCP Marketplace](https://mcp-marketplace.io).
+
+*(More platforms coming soon.)*
+
+When you connect via these marketplaces, the platform handles the session management. You will be prompted to add your OpenRouter API key to the `X-OpenRouter-Key` header so the AI features can function securely using your own quota (BYOK).
+
 
 ### Bring Your Own Key (BYOK) Architecture
 To protect your API quotas and ensure maximum privacy, the hosted server operates on a **BYOK** model. You simply pass your OpenRouter API key in the `X-OpenRouter-Key` HTTP header when connecting.
