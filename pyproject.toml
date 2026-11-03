@@ -9,7 +9,7 @@ description = "Gandoki — precision-first secret & debug-exposure scanner that 
 authors = [{name = "Godwin Tarbo"}]
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = {text = "Business Source License 1.1"}
 keywords = ["security", "secrets", "secret-scanner", "mcp", "vibe-coding", "defender"]
 classifiers = [
     "Development Status :: 4 - Beta",

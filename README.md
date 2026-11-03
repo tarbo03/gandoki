@@ -132,3 +132,10 @@ to test.
 80 tests. The load-bearing ones are `test_ai_asymmetry.py` and
 `test_ai_recall_cannot_bypass_extractor.py`. If either goes red, the tool
 can no longer claim honesty.
+
+## 📄 License
+
+Gandoki is released under the **Business Source License 1.1 (BSL)**.
+*   You are free to read, audit, modify, and use Gandoki for non-production and internal purposes.
+*   You may not offer Gandoki as a competing commercial SaaS or MCP hosting service.
+*   The license automatically converts to the **Apache License 2.0** on January 1, 2030.
