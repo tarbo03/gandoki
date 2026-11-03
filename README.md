@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/logo.png" width="600" alt="Gandoki Logo" />
+</div>
+
 # Gandoki
 
 **A secret scanner that can't lie to you.**
